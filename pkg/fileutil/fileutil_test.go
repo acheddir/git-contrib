@@ -67,7 +67,12 @@ func TestOpenFile(t *testing.T) {
 
 	// Test opening a file that doesn't exist
 	file := OpenFile(tempFile)
-	defer file.Close()
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			t.Errorf("Failed to close file: %v", err)
+		}
+	}(file)
 
 	// Check that the file was created
 	if _, err := os.Stat(tempFile); os.IsNotExist(err) {
@@ -76,7 +81,12 @@ func TestOpenFile(t *testing.T) {
 
 	// Test opening a file that already exists
 	file2 := OpenFile(tempFile)
-	defer file2.Close()
+	defer func(file2 *os.File) {
+		err := file2.Close()
+		if err != nil {
+			t.Errorf("Failed to close file: %v", err)
+		}
+	}(file2)
 
 	// Check that the file still exists
 	if _, err := os.Stat(tempFile); os.IsNotExist(err) {
@@ -160,36 +170,36 @@ func TestAddElementsToFile(t *testing.T) {
 // TestJoinSlices tests the JoinSlices function
 func TestJoinSlices(t *testing.T) {
 	// Test case 1: Adding new elements to an empty slice
-	new := []string{"a", "b", "c"}
-	existing := []string{}
-	result := JoinSlices(new, existing)
+	newArr := []string{"a", "b", "c"}
+	var existing []string
+	result := JoinSlices(newArr, existing)
 	expected := []string{"a", "b", "c"}
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("Expected %v, got %v", expected, result)
 	}
 
 	// Test case 2: Adding new elements to a non-empty slice
-	new = []string{"c", "d", "e"}
+	newArr = []string{"c", "d", "e"}
 	existing = []string{"a", "b", "c"}
-	result = JoinSlices(new, existing)
+	result = JoinSlices(newArr, existing)
 	expected = []string{"a", "b", "c", "d", "e"}
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("Expected %v, got %v", expected, result)
 	}
 
 	// Test case 3: Adding duplicate elements
-	new = []string{"a", "b", "c"}
+	newArr = []string{"a", "b", "c"}
 	existing = []string{"a", "b", "c"}
-	result = JoinSlices(new, existing)
+	result = JoinSlices(newArr, existing)
 	expected = []string{"a", "b", "c"}
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("Expected %v, got %v", expected, result)
 	}
 
 	// Test case 4: Adding empty slice
-	new = []string{}
+	newArr = []string{}
 	existing = []string{"a", "b", "c"}
-	result = JoinSlices(new, existing)
+	result = JoinSlices(newArr, existing)
 	expected = []string{"a", "b", "c"}
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("Expected %v, got %v", expected, result)
