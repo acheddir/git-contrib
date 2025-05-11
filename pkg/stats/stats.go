@@ -44,15 +44,16 @@ func GetBeginningOfDay(t time.Time) time.Time {
 // Returns:
 //   - int: The number of days since the given date, or OutOfRange if more than DaysInLastSixMonths
 func CountDaysSinceDate(date time.Time) int {
-	days := 0
+	// Normalize both dates to the beginning of their respective days
+	date = GetBeginningOfDay(date)
 	now := GetBeginningOfDay(time.Now())
 
-	for date.Before(now) {
-		date = date.Add(time.Hour * HoursInDay)
-		days++
-		if days > DaysInLastSixMonths {
-			return OutOfRange
-		}
+	// Calculate the difference in days
+	diff := now.Sub(date)
+	days := int(diff.Hours() / HoursInDay)
+
+	if days > DaysInLastSixMonths {
+		return OutOfRange
 	}
 	return days
 }
@@ -61,25 +62,25 @@ func CountDaysSinceDate(date time.Time) int {
 // This is used for positioning in the contribution graph.
 //
 // Returns:
-//   - int: A value from 1 to 7 representing the offset for the current weekday
+//   - int: A value from 0 to 6 representing the day of the week (0=Sunday, 1=Monday, etc.)
 func CalculateWeekdayOffset() int {
 	weekday := time.Now().Weekday()
 
 	switch weekday {
 	case time.Sunday:
-		return 7
+		return 0
 	case time.Monday:
-		return 6
-	case time.Tuesday:
-		return 5
-	case time.Wednesday:
-		return 4
-	case time.Thursday:
-		return 3
-	case time.Friday:
-		return 2
-	case time.Saturday:
 		return 1
+	case time.Tuesday:
+		return 2
+	case time.Wednesday:
+		return 3
+	case time.Thursday:
+		return 4
+	case time.Friday:
+		return 5
+	case time.Saturday:
+		return 6
 	}
 
 	return 0 // Should never reach here
@@ -109,14 +110,11 @@ func GetCommitsFromRepo(email string, path string, commits map[int]int) (map[int
 		return nil, fmt.Errorf("failed to get HEAD reference: %w", err)
 	}
 
-	// Get the commits history starting from HEAD
+	// Get the commit history starting from HEAD
 	iterator, err := repo.Log(&git.LogOptions{From: ref.Hash()})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get commit log: %w", err)
 	}
-
-	// Calculate offset for the contribution graph
-	offset := CalculateWeekdayOffset()
 
 	// Iterate through the commits
 	err = iterator.ForEach(func(c *object.Commit) error {
@@ -125,7 +123,7 @@ func GetCommitsFromRepo(email string, path string, commits map[int]int) (map[int
 			return nil
 		}
 
-		daysAgo := CountDaysSinceDate(c.Author.When) + offset
+		daysAgo := CountDaysSinceDate(c.Author.When)
 
 		// Only count commits within the last six months
 		if daysAgo != OutOfRange {
@@ -166,7 +164,8 @@ func ProcessRepositories(email string) (map[int]int, error) {
 		var err error
 		commits, err = GetCommitsFromRepo(email, path, commits)
 		if err != nil {
-			return nil, fmt.Errorf("error processing repository %s: %w", path, err)
+			// Log the error but continue processing other repositories
+			fmt.Printf("Warning: %v\n", err)
 		}
 	}
 
@@ -179,18 +178,19 @@ func ProcessRepositories(email string) (map[int]int, error) {
 // Parameters:
 //   - val: The number of commits for this cell
 //   - today: Whether this cell represents today
-func PrintCell(val int, today bool) {
-	// Default color for empty cells
-	escape := "\033[0;37;30m"
+//   - date: The date for this cell
+func PrintCell(val int, today bool, date time.Time) {
+	// Light gray for no contributions
+	escape := "\033[0;37;48;5;248m"
 
-	// Set color based on commit count
+	// Set color based on commit count - from lighter to darker green
 	switch {
 	case val > 0 && val < 5:
-		escape = "\033[1;30;47m" // Light color for few commits
+		escape = "\033[1;30;48;5;120m" // Light green for few commits
 	case val >= 5 && val < 10:
-		escape = "\033[1;30;43m" // Medium color for moderate commits
+		escape = "\033[1;30;48;5;34m" // Medium green for moderate commits
 	case val >= 10:
-		escape = "\033[1;30;42m" // Dark color for many commits
+		escape = "\033[1;30;48;5;22m" // Dark green for many commits
 	}
 
 	// Special color for today's cell
@@ -198,26 +198,12 @@ func PrintCell(val int, today bool) {
 		escape = "\033[1;37;45m"
 	}
 
-	// Print empty cell
-	if val == 0 {
-		fmt.Printf(escape + "  - " + "\033[0m")
-		return
-	}
-
-	// Format string based on number of digits
-	str := "  %d "
-	switch {
-	case val >= 10 && val < 100:
-		str = " %d "
-	case val >= 100:
-		str = "%d "
-	}
-
-	fmt.Printf(escape+str+"\033[0m", val)
+	// Print cell with a pipe separator (days are hidden)
+	fmt.Printf("%s   %s|", escape, "\033[0m")
 }
 
 // PrintCommitsStats displays a visual representation of commit statistics in a calendar-like grid.
-// It processes the commits map, builds the columns, and prints the cells.
+// It processes the commits' map, builds the columns, and prints the cells.
 //
 // Parameters:
 //   - commits: A map of days to commit counts
@@ -254,28 +240,147 @@ func SortMapIntoSlice(m map[int]int) []int {
 //   - map[int]Column: A map of week numbers to columns of commit counts
 func BuildCols(keys []int, commits map[int]int) map[int]Column {
 	cols := make(map[int]Column)
-	col := Column{}
+
+	// Get today's date
+	today := GetBeginningOfDay(time.Now())
+
+	// Initialize a map to group commits by week and day
+	weekDayCommits := make(map[int]map[int]int)
+
+	// Calculate the current weekday
+	_ = int(today.Weekday())
+
+	// Calculate the start date for the contribution graph (6 months ago)
+	startDate := today.AddDate(0, -6, 0)
+
+	// Calculate the start of the week for the start date
+	daysToStartSunday := int(startDate.Weekday())
+	startOfFirstWeek := startDate.AddDate(0, 0, -daysToStartSunday)
 
 	for _, k := range keys {
-		// Calculate week number and day of week
-		week := int(k / DaysInWeek) // 26, 25, ..., 1
-		dayInWeek := k % DaysInWeek // 0, 1, 2, 3, 4, 5, 6
+		// Calculate the actual date for this key (days ago)
+		date := today.AddDate(0, 0, -k)
 
-		// Start a new column at the beginning of each week
-		if dayInWeek == 0 {
-			col = Column{}
+		// Skip dates before the start date
+		if date.Before(startDate) {
+			continue
 		}
 
-		// Add commit count to the column
-		col = append(col, commits[k])
+		// Get the actual day of the week for this date (0=Sunday, 1=Monday, etc.)
+		dayInWeek := int(date.Weekday())
 
-		// Save the column when we reach the end of the week
-		if dayInWeek == 6 {
-			cols[week] = col
+		// Calculate the number of weeks since the start of the first week
+		weeksSinceStart := int(date.Sub(startOfFirstWeek).Hours() / (HoursInDay * DaysInWeek))
+
+		// The week number is the number of weeks from the start of the graph
+		week := WeeksInLastSixMonths - weeksSinceStart
+
+		// Initialize the week map if it doesn't exist
+		if _, ok := weekDayCommits[week]; !ok {
+			weekDayCommits[week] = make(map[int]int)
 		}
+
+		// Add commit count to the week/day map
+		weekDayCommits[week][dayInWeek] += commits[k]
+	}
+
+	// Convert the week/day map to columns
+	for week, days := range weekDayCommits {
+		col := make(Column, 7) // Initialize with 7 days (0-6)
+
+		// Fill in the column with commit counts for each day
+		for day, count := range days {
+			col[day] = count
+		}
+
+		cols[week] = col
 	}
 
 	return cols
+}
+
+// calculateGraphParameters calculates the parameters needed for rendering the contribution graph.
+// It determines which week today is in and the maximum week to display.
+//
+// Parameters:
+//   - cols: A map of week numbers to columns of commit counts
+//
+// Returns:
+//   - time.Time: The start of the first week in the graph
+//   - int: The week number that contains today
+//   - int: The maximum week number to display
+func calculateGraphParameters(cols map[int]Column) (time.Time, int, int) {
+	// Calculate which week today is in
+	today := GetBeginningOfDay(time.Now())
+	startDate := today.AddDate(0, -6, 0)
+	daysToStartSunday := int(startDate.Weekday())
+	startOfFirstWeek := startDate.AddDate(0, 0, -daysToStartSunday)
+	weeksSinceStart := int(today.Sub(startOfFirstWeek).Hours() / (HoursInDay * DaysInWeek))
+	todayWeek := WeeksInLastSixMonths - weeksSinceStart
+
+	// Find the maximum week number in the col map
+	maxWeek := 0
+	for week := range cols {
+		if week > maxWeek {
+			maxWeek = week
+		}
+	}
+
+	// Ensure we display at least WeeksInLastSixMonths+1 columns
+	if maxWeek < WeeksInLastSixMonths {
+		maxWeek = WeeksInLastSixMonths
+	}
+
+	return startOfFirstWeek, todayWeek, maxWeek
+}
+
+// printCellForPosition prints the appropriate cell for a given position in the contribution graph.
+//
+// Parameters:
+//   - cols: A map of week numbers to columns of commit counts
+//   - weekNum: The week number for this cell
+//   - dayNum: The day number for this cell
+//   - todayWeek: The week number that contains today
+//   - cellDate: The date for this cell
+func printCellForPosition(cols map[int]Column, weekNum int, dayNum int, todayWeek int, cellDate time.Time) {
+	// Check if this cell represents today
+	isToday := weekNum == todayWeek && dayNum == CalculateWeekdayOffset()
+
+	// Get a commit count for this cell if available
+	commitCount := 0
+	if col, ok := cols[weekNum]; ok && len(col) > dayNum {
+		commitCount = col[dayNum]
+	}
+
+	// Print the cell with appropriate styling
+	PrintCell(commitCount, isToday, cellDate)
+}
+
+// printWeekRow prints a single row (day of the week) in the contribution graph.
+//
+// Parameters:
+//   - cols: A map of week numbers to columns of commit counts
+//   - dayNum: The day number (0-6) to print
+//   - startOfFirstWeek: The start date of the first week in the graph
+//   - todayWeek: The week number that contains today
+//   - maxWeek: The maximum week number to display
+func printWeekRow(cols map[int]Column, dayNum int, startOfFirstWeek time.Time, todayWeek int, maxWeek int) {
+	// Iterate through weeks (columns)
+	for weekNum := maxWeek + 1; weekNum >= 0; weekNum-- {
+		// Print day labels in the first column
+		if weekNum == maxWeek+1 {
+			PrintDayCol(dayNum)
+			continue
+		}
+
+		// Calculate the date for this cell
+		weekOffset := WeeksInLastSixMonths - weekNum
+		cellDate := startOfFirstWeek.AddDate(0, 0, weekOffset*7+dayNum)
+
+		// Print the appropriate cell for this position
+		printCellForPosition(cols, weekNum, dayNum, todayWeek, cellDate)
+	}
+	fmt.Printf("\n")
 }
 
 // PrintCells renders the contribution graph by printing all cells in a grid format.
@@ -287,62 +392,62 @@ func BuildCols(keys []int, commits map[int]int) map[int]Column {
 func PrintCells(cols map[int]Column) {
 	PrintMonths()
 
-	// Iterate through days of the week (rows)
-	for j := 6; j >= 0; j-- {
-		// Iterate through weeks (columns)
-		for i := WeeksInLastSixMonths + 1; i >= 0; i-- {
-			// Print day labels in the first column
-			if i == WeeksInLastSixMonths+1 {
-				PrintDayCol(j)
-			}
+	// Calculate graph parameters
+	startOfFirstWeek, todayWeek, maxWeek := calculateGraphParameters(cols)
 
-			if col, ok := cols[i]; ok {
-				// Special case for today's cell
-				if i == 0 && j == CalculateWeekdayOffset()-1 {
-					PrintCell(col[j], true)
-					continue
-				} else if len(col) > j {
-					PrintCell(col[j], false)
-					continue
-				}
-			}
-			// Print empty cell if no data
-			PrintCell(0, false)
-		}
-		fmt.Printf("\n")
+	// Iterate through days of the week (rows)
+	for dayNum := 0; dayNum <= 6; dayNum++ {
+		printWeekRow(cols, dayNum, startOfFirstWeek, todayWeek, maxWeek)
 	}
 }
 
 // PrintMonths prints the month labels at the top of the contribution graph.
-// It calculates the appropriate position for each month label based on the current date.
+// It places month names on columns with the first day of that month.
 func PrintMonths() {
-	// Start from 6 months ago
-	week := GetBeginningOfDay(time.Now()).Add(-(DaysInLastSixMonths * time.Hour * HoursInDay))
-	month := week.Month()
+	// Started from 6 months ago
+	startDate := GetBeginningOfDay(time.Now()).AddDate(0, -6, 0)
+
+	// Calculate the start of the week for the start date
+	daysToSunday := int(startDate.Weekday())
+	startOfWeek := startDate.AddDate(0, 0, -daysToSunday)
 
 	// Print initial spacing
 	fmt.Printf("         ")
 
-	// Print month names when month changes
-	for {
-		if week.Month() != month {
-			fmt.Printf("%s ", week.Month().String()[:3])
-			month = week.Month()
+	// Map to store week numbers that contain the first day of a month
+	monthLabels := make(map[int]string)
+
+	// Iterate through each day in the 6-month period to find the first days of months
+	for weekNum := WeeksInLastSixMonths; weekNum >= 0; weekNum-- {
+		for dayInWeek := 0; dayInWeek < 7; dayInWeek++ {
+			// Calculate the date for this cell
+			cellDate := startOfWeek.AddDate(0, 0, (WeeksInLastSixMonths-weekNum)*7+dayInWeek)
+
+			// If this is the first day of a month, store the month label for this week
+			if cellDate.Day() == 1 {
+				monthLabels[weekNum] = cellDate.Month().String()[:3]
+				break // Found first day of the month in this week, move to next week
+			}
+		}
+	}
+
+	// Print month labels
+	for weekNum := WeeksInLastSixMonths; weekNum >= 0; weekNum-- {
+		if label, ok := monthLabels[weekNum]; ok {
+			fmt.Printf("%s ", label)
 		} else {
 			fmt.Printf("    ")
 		}
-
-		// Move to next week
-		week = week.Add(DaysInWeek * time.Hour * HoursInDay)
-		if week.After(time.Now()) {
-			break
-		}
 	}
+
+	// Add an extra column for the current week
+	fmt.Printf("    ")
+
 	fmt.Printf("\n")
 }
 
 // PrintDayCol prints the day labels on the left side of the contribution graph.
-// It displays labels for Monday, Wednesday, and Friday.
+// It displays the first letter of each day of the week.
 //
 // Parameters:
 //   - day: The day index (0-6) to print a label for
@@ -350,13 +455,21 @@ func PrintDayCol(day int) {
 	out := "     " // Default empty label
 
 	switch day {
+	case 0:
+		out = "  S  "
 	case 1:
-		out = " Mon "
+		out = "  M  "
+	case 2:
+		out = "  T  "
 	case 3:
-		out = " Wed "
+		out = "  W  "
+	case 4:
+		out = "  T  "
 	case 5:
-		out = " Fri "
+		out = "  F  "
+	case 6:
+		out = "  S  "
 	}
 
-	fmt.Printf(out)
+	fmt.Printf("%s", out)
 }

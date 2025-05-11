@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
+	"path/filepath"
 )
 
 // ScanGitFolders scans the specified folder for Git repositories and adds them to the existing list of folders.
@@ -17,7 +17,8 @@ import (
 // Returns:
 //   - An updated list of Git repository folders including any new ones found
 func ScanGitFolders(folders []string, folder string) []string {
-	folder = strings.TrimSuffix(folder, "/")
+	// Ensure the folder path uses the correct separator for the OS
+	folder = filepath.Clean(folder)
 
 	folderOpen, folderOpenErr := os.Open(folder)
 	if folderOpenErr != nil {
@@ -38,9 +39,9 @@ func ScanGitFolders(folders []string, folder string) []string {
 
 	for _, file := range files {
 		if file.IsDir() {
-			path = folder + "/" + file.Name()
+			path = filepath.Join(folder, file.Name())
 			if file.Name() == ".git" {
-				path = strings.TrimSuffix(path, "/.git")
+				path = filepath.Dir(path) // Remove the .git part
 				fmt.Println(path)
 				folders = append(folders, path)
 				continue
