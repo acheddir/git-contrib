@@ -19,17 +19,7 @@ go install github.com/acheddir/git-contrib@latest
 
 ### Using Scoop (Windows)
 
-To install git-contrib using [Scoop](https://scoop.sh/), first make sure you have Scoop installed, then:
-
-```powershell
-# Add the bucket containing git-contrib
-scoop bucket add extras
-
-# Install git-contrib
-scoop install git-contrib
-```
-
-Alternatively, you can install directly from the manifest:
+You can install directly from the manifest:
 
 ```powershell
 scoop install https://raw.githubusercontent.com/acheddir/git-contrib/main/git-contrib.json
