@@ -14,7 +14,7 @@ A tool for analyzing Git commits and displaying a contribution graph.
 ### Using Go
 
 ```bash
-go install github.com/username/git-contrib@latest
+go install github.com/acheddir/git-contrib@latest
 ```
 
 ### Using Scoop (Windows)
@@ -32,7 +32,7 @@ scoop install git-contrib
 Alternatively, you can install directly from the manifest:
 
 ```powershell
-scoop install https://raw.githubusercontent.com/username/git-contrib/main/git-contrib.json
+scoop install https://raw.githubusercontent.com/acheddir/git-contrib/main/git-contrib.json
 ```
 
 ## Usage
@@ -58,11 +58,11 @@ git-contrib stats --days
 
 ```bash
 # Clone the repository
-git clone https://github.com/username/git-contrib.git
+git clone https://github.com/acheddir/git-contrib.git
 cd git-contrib
 
 # Build
-make build
+make clean && make
 ```
 
 ## License

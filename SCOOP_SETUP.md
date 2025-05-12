@@ -34,7 +34,7 @@ To make your project installable via Scoop, follow these steps:
 
 4. **Test the installation**:
    ```
-   scoop install https://raw.githubusercontent.com/username/git-contrib/main/git-contrib.json
+   scoop install https://raw.githubusercontent.com/acheddir/git-contrib/main/git-contrib.json
    ```
    (Replace "username" with your GitHub username)
 
