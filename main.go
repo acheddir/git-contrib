@@ -1,7 +1,7 @@
 package main
 
 import (
-	"git-contrib/cmd"
+	"github.com/acheddir/git-contrib/cmd"
 )
 
 func main() {

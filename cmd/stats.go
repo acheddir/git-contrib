@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"git-contrib/pkg/commands"
+	"github.com/acheddir/git-contrib/pkg/commands"
 	"github.com/spf13/cobra"
 	"os"
 	"os/exec"

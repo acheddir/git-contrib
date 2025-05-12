@@ -1,4 +1,4 @@
-module git-contrib
+module github.com/acheddir/git-contrib
 
 go 1.24.2
 

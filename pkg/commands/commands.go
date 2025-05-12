@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"git-contrib/pkg/stats"
+	"github.com/acheddir/git-contrib/pkg/stats"
 )
 
 // Stats process Git repositories and display commit statistics.
