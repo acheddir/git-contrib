@@ -14,7 +14,7 @@ A tool for analyzing Git commits and displaying a contribution graph on the comm
 ### Using Go
 
 ```bash
-go install github.com/acheddir/git-contrib@v1.0.0
+go install github.com/acheddir/git-contrib@latest
 ```
 
 ### Using Scoop (Windows)
