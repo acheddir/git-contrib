@@ -1,15 +1,15 @@
 {
-    "version": "0.2.0-beta.1",
+    "version": "1.0.0",
     "description": "A tool for analyzing Git commits and displaying a contribution graph",
     "homepage": "https://github.com/acheddir/git-contrib",
     "license": "MIT",
     "bin": "git-contrib.exe",
     "checkver": "github",
-    "hash": "f0e4aa2b6715f4e0f392cec636d60c871d2d500916e0c03b808af1fa90337b43",
+    "hash": "32f99ef959a4d153b045042515de8619b58841add4e2b8db88311703b92f8f62",
     "architecture": {
         "64bit": {
-            "url": "https://github.com/acheddir/git-contrib/releases/download/v0.2.0-beta.1/git-contrib-windows-amd64.zip",
-            "extract_dir": "git-contrib-0.2.0-beta.1"
+            "url": "https://github.com/acheddir/git-contrib/releases/download/v1.0.0/git-contrib-windows-amd64.zip",
+            "extract_dir": "git-contrib-v1.0.0"
         }
     },
     "autoupdate": {
