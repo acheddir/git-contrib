@@ -7,8 +7,6 @@ import (
 
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
-
-	"git-contrib/pkg/fileutil"
 )
 
 // Constants for time calculations and display
@@ -86,11 +84,13 @@ func CalculateWeekdayOffset() int {
 	return 0 // Should never reach here
 }
 
-// GetCommitsFromRepo retrieves commit information from a Git repository for a specific email address.
+// GetCommitsFromRepo retrieves commit information from a Git repository.
+// If an email is provided, it filters commits by that email address.
+// If no email is provided, it includes commits from all users.
 // It updates the provided commits map with the count of commits per day.
 //
 // Parameters:
-//   - email: The email address to filter commits by
+//   - email: The email address to filter commits by (if empty, includes all commits)
 //   - path: The path to the Git repository
 //   - commits: A map of days to commit counts to update
 //
@@ -118,8 +118,8 @@ func GetCommitsFromRepo(email string, path string, commits map[int]int) (map[int
 
 	// Iterate through the commits
 	err = iterator.ForEach(func(c *object.Commit) error {
-		// Skip commits not authored by the specified email
-		if c.Author.Email != email {
+		// If email is provided, skip commits not authored by the specified email
+		if email != "" && c.Author.Email != email {
 			return nil
 		}
 
@@ -140,46 +140,44 @@ func GetCommitsFromRepo(email string, path string, commits map[int]int) (map[int
 	return commits, nil
 }
 
-// ProcessRepositories processes all repositories listed in the .git-contrib dotfile
-// and collects commit statistics for the specified email address.
+// ProcessRepositories processes a Git repository and collects commit statistics.
+// If an email is provided, it filters commits by that email address.
+// If no email is provided, it includes commits from all users.
 //
 // Parameters:
-//   - email: The email address to filter commits by
+//   - email: The email address to filter commits by (if empty, includes all commits)
+//   - directory: The directory to analyze (should be a Git repository)
 //
 // Returns:
 //   - map[int]int: A map of days to commit counts
 //   - error: An error if any occurred during processing
-func ProcessRepositories(email string) (map[int]int, error) {
-	filePath := fileutil.GetDotfilePath()
-	repos := fileutil.ParseFileLines(filePath)
-
+func ProcessRepositories(email string, directory string) (map[int]int, error) {
 	// Initialize the commits' map with zeros for all days
 	commits := make(map[int]int, DaysInLastSixMonths)
 	for i := DaysInLastSixMonths; i > 0; i-- {
 		commits[i] = 0
 	}
 
-	// Process each repository
-	for _, path := range repos {
-		var err error
-		commits, err = GetCommitsFromRepo(email, path, commits)
-		if err != nil {
-			// Log the error but continue processing other repositories
-			fmt.Printf("Warning: %v\n", err)
-		}
+	// Process the repository
+	var err error
+	commits, err = GetCommitsFromRepo(email, directory, commits)
+	if err != nil {
+		return nil, fmt.Errorf("error processing repository at %s: %w", directory, err)
 	}
 
 	return commits, nil
 }
 
-// PrintCell prints a single cell in the contribution graph with appropriate coloring
+// PrintCell prints a single cell in the contribution graph with the appropriate coloring
 // based on the number of commits and whether it represents today.
 //
 // Parameters:
 //   - val: The number of commits for this cell
 //   - today: Whether this cell represents today
 //   - date: The date for this cell
-func PrintCell(val int, today bool, date time.Time) {
+//   - showCommitCount: Whether to display the number of commits on each cell
+//   - showDaysOfMonth: Whether to display the days of the month on the graph calendar
+func PrintCell(val int, today bool, date time.Time, showCommitCount bool, showDaysOfMonth bool) {
 	// Light gray for no contributions
 	escape := "\033[0;37;48;5;248m"
 
@@ -198,8 +196,30 @@ func PrintCell(val int, today bool, date time.Time) {
 		escape = "\033[1;37;45m"
 	}
 
-	// Print cell with a pipe separator (days are hidden)
-	fmt.Printf("%s   %s|", escape, "\033[0m")
+	// Determine what to display in the cell
+	cellContent := "   " // Default empty cell
+
+	// Show the commit count if requested
+	if showCommitCount && val > 0 {
+		if val < 10 {
+			cellContent = fmt.Sprintf(" %d ", val) // Single digit with padding
+		} else {
+			cellContent = fmt.Sprintf("%d ", val) // Double-digit with padding
+		}
+	}
+
+	// Show day of the month if requested
+	if showDaysOfMonth {
+		day := date.Day()
+		if day < 10 {
+			cellContent = fmt.Sprintf(" %d ", day) // Single digit with padding
+		} else {
+			cellContent = fmt.Sprintf("%d ", day) // Double-digit with padding
+		}
+	}
+
+	// Print cell with a pipe separator
+	fmt.Printf("%s%s%s|", escape, cellContent, "\033[0m")
 }
 
 // PrintCommitsStats displays a visual representation of commit statistics in a calendar-like grid.
@@ -207,10 +227,12 @@ func PrintCell(val int, today bool, date time.Time) {
 //
 // Parameters:
 //   - commits: A map of days to commit counts
-func PrintCommitsStats(commits map[int]int) {
+//   - showCommitCount: Whether to display the number of commits on each cell
+//   - showDaysOfMonth: Whether to display the days of the month on the graph calendar
+func PrintCommitsStats(commits map[int]int, showCommitCount bool, showDaysOfMonth bool) {
 	keys := SortMapIntoSlice(commits)
 	cols := BuildCols(keys, commits)
-	PrintCells(cols)
+	PrintCells(cols, showCommitCount, showDaysOfMonth)
 }
 
 // SortMapIntoSlice extracts the keys from a map and returns them as a sorted slice.
@@ -280,7 +302,7 @@ func BuildCols(keys []int, commits map[int]int) map[int]Column {
 			weekDayCommits[week] = make(map[int]int)
 		}
 
-		// Add commit count to the week/day map
+		// Add the commit count to the week/day map
 		weekDayCommits[week][dayInWeek] += commits[k]
 	}
 
@@ -342,7 +364,9 @@ func calculateGraphParameters(cols map[int]Column) (time.Time, int, int) {
 //   - dayNum: The day number for this cell
 //   - todayWeek: The week number that contains today
 //   - cellDate: The date for this cell
-func printCellForPosition(cols map[int]Column, weekNum int, dayNum int, todayWeek int, cellDate time.Time) {
+//   - showCommitCount: Whether to display the number of commits on each cell
+//   - showDaysOfMonth: Whether to display the days of the month on the graph calendar
+func printCellForPosition(cols map[int]Column, weekNum int, dayNum int, todayWeek int, cellDate time.Time, showCommitCount bool, showDaysOfMonth bool) {
 	// Check if this cell represents today
 	isToday := weekNum == todayWeek && dayNum == CalculateWeekdayOffset()
 
@@ -353,7 +377,7 @@ func printCellForPosition(cols map[int]Column, weekNum int, dayNum int, todayWee
 	}
 
 	// Print the cell with appropriate styling
-	PrintCell(commitCount, isToday, cellDate)
+	PrintCell(commitCount, isToday, cellDate, showCommitCount, showDaysOfMonth)
 }
 
 // printWeekRow prints a single row (day of the week) in the contribution graph.
@@ -364,7 +388,9 @@ func printCellForPosition(cols map[int]Column, weekNum int, dayNum int, todayWee
 //   - startOfFirstWeek: The start date of the first week in the graph
 //   - todayWeek: The week number that contains today
 //   - maxWeek: The maximum week number to display
-func printWeekRow(cols map[int]Column, dayNum int, startOfFirstWeek time.Time, todayWeek int, maxWeek int) {
+//   - showCommitCount: Whether to display the number of commits on each cell
+//   - showDaysOfMonth: Whether to display the days of the month on the graph calendar
+func printWeekRow(cols map[int]Column, dayNum int, startOfFirstWeek time.Time, todayWeek int, maxWeek int, showCommitCount bool, showDaysOfMonth bool) {
 	// Iterate through weeks (columns)
 	for weekNum := maxWeek + 1; weekNum >= 0; weekNum-- {
 		// Print day labels in the first column
@@ -378,7 +404,7 @@ func printWeekRow(cols map[int]Column, dayNum int, startOfFirstWeek time.Time, t
 		cellDate := startOfFirstWeek.AddDate(0, 0, weekOffset*7+dayNum)
 
 		// Print the appropriate cell for this position
-		printCellForPosition(cols, weekNum, dayNum, todayWeek, cellDate)
+		printCellForPosition(cols, weekNum, dayNum, todayWeek, cellDate, showCommitCount, showDaysOfMonth)
 	}
 	fmt.Printf("\n")
 }
@@ -389,7 +415,9 @@ func printWeekRow(cols map[int]Column, dayNum int, startOfFirstWeek time.Time, t
 //
 // Parameters:
 //   - cols: A map of week numbers to columns of commit counts
-func PrintCells(cols map[int]Column) {
+//   - showCommitCount: Whether to display the number of commits on each cell
+//   - showDaysOfMonth: Whether to display the days of the month on the graph calendar
+func PrintCells(cols map[int]Column, showCommitCount bool, showDaysOfMonth bool) {
 	PrintMonths()
 
 	// Calculate graph parameters
@@ -397,7 +425,7 @@ func PrintCells(cols map[int]Column) {
 
 	// Iterate through days of the week (rows)
 	for dayNum := 0; dayNum <= 6; dayNum++ {
-		printWeekRow(cols, dayNum, startOfFirstWeek, todayWeek, maxWeek)
+		printWeekRow(cols, dayNum, startOfFirstWeek, todayWeek, maxWeek, showCommitCount, showDaysOfMonth)
 	}
 }
 
@@ -423,9 +451,12 @@ func PrintMonths() {
 			// Calculate the date for this cell
 			cellDate := startOfWeek.AddDate(0, 0, (WeeksInLastSixMonths-weekNum)*7+dayInWeek)
 
-			// If this is the first day of a month, store the month label for this week
+			// If this is the first day of a month, store the month label for the previous week
 			if cellDate.Day() == 1 {
-				monthLabels[weekNum] = cellDate.Month().String()[:3]
+				// Only store the label if we're not at the oldest week (to avoid out of bounds)
+				if weekNum < WeeksInLastSixMonths {
+					monthLabels[weekNum+1] = cellDate.Month().String()[:3]
+				}
 				break // Found first day of the month in this week, move to next week
 			}
 		}

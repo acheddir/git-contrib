@@ -1,37 +1,27 @@
 package commands
 
 import (
-	"fmt"
-	"git-contrib/pkg/fileutil"
-	"git-contrib/pkg/scanner"
 	"git-contrib/pkg/stats"
 )
 
-// Scan scans a folder for Git repositories and adds them to the .git-contrib dotfile.
+// Stats process Git repositories and display commit statistics.
+// If an email is provided, it filters commits by that email address.
+// If no email is provided, it includes commits from all users.
 //
 // Parameters:
-//   - folder: The path to the folder to scan for Git repositories
-func Scan(folder string) {
-	fmt.Printf("Found folders:\n\n")
-	repos := scanner.ScanFolder(folder)
-	filePath := fileutil.GetDotfilePath()
-	fileutil.AddElementsToFile(filePath, repos)
-	fmt.Printf("\n\nSuccessfully added\n\n")
-}
-
-// Stats process Git repositories and display commit statistics for a given email.
-//
-// Parameters:
-//   - email: The email address to filter commits by
+//   - email: The email address to filter commits by (if empty, includes all commits)
+//   - directory: The directory to analyze (should be a Git repository)
+//   - showCommitCount: Whether to display the number of commits on each cell
+//   - showDaysOfMonth: Whether to display the days of the month on the graph calendar
 //
 // Returns:
 //   - error: An error if any occurred during processing
-func Stats(email string) error {
-	commits, err := stats.ProcessRepositories(email)
+func Stats(email string, directory string, showCommitCount bool, showDaysOfMonth bool) error {
+	commits, err := stats.ProcessRepositories(email, directory)
 	if err != nil {
 		return err
 	}
 
-	stats.PrintCommitsStats(commits)
+	stats.PrintCommitsStats(commits, showCommitCount, showDaysOfMonth)
 	return nil
 }
