@@ -9,7 +9,7 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "git-contrib",
-	Short: "Git-contrib is a tool for analyzing Git contributions and displaying a contribution graph.",
+	Short: "Git-contrib is a tool for analyzing Git commits and displaying a contribution graph.",
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

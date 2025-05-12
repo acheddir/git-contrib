@@ -19,8 +19,8 @@ var statsCmd = &cobra.Command{
 	Short: "Display commits contribution graph",
 	Long: `Process Git repositories and display commits contribution graph for all users.
 This command will analyze the current working directory as a Git repository
-and generate statistics about commits made by all the users.
-If an email is provided, it will show contributions from that email address.`,
+and generate statistics about commits made by all users.
+If an email is provided, it will show contributions from that email address only.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Check if both -c and -d flags are used together
 		if showCommitCountFlag && showDaysOfMonthFlag {

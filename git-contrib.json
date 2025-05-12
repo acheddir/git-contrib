@@ -1,0 +1,24 @@
+{
+    "version": "1.0.0",
+    "description": "A tool for analyzing Git commits and displaying a contribution graph",
+    "homepage": "https://github.com/username/git-contrib",
+    "license": "MIT",
+    "architecture": {
+        "64bit": {
+            "url": "https://github.com/username/git-contrib/releases/download/v1.0.0/git-contrib-windows-amd64.zip",
+            "hash": "SHA256 hash of the zip file (replace this with the actual hash)",
+            "extract_dir": "git-contrib-1.0.0"
+        }
+    },
+    "bin": "git-contrib.exe",
+    "checkver": "github",
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://github.com/username/git-contrib/releases/download/v$version/git-contrib-windows-amd64.zip",
+                "extract_dir": "git-contrib-$version"
+            }
+        }
+    },
+    "_comment": "To use this manifest with Scoop, replace 'username' with your GitHub username, upload this file to your repository, and run: scoop install https://raw.githubusercontent.com/username/git-contrib/main/git-contrib.json"
+}
