@@ -1,11 +1,11 @@
 {
     "version": "1.0.0",
     "description": "A tool for analyzing Git commits and displaying a contribution graph",
-    "homepage": "https://github.com/username/git-contrib",
+    "homepage": "https://github.com/acheddir/git-contrib",
     "license": "MIT",
     "architecture": {
         "64bit": {
-            "url": "https://github.com/username/git-contrib/releases/download/v1.0.0/git-contrib-windows-amd64.zip",
+            "url": "https://github.com/acheddir/git-contrib/releases/download/v1.0.0/git-contrib-windows-amd64.zip",
             "hash": "SHA256 hash of the zip file (replace this with the actual hash)",
             "extract_dir": "git-contrib-1.0.0"
         }
@@ -15,7 +15,7 @@
     "autoupdate": {
         "architecture": {
             "64bit": {
-                "url": "https://github.com/username/git-contrib/releases/download/v$version/git-contrib-windows-amd64.zip",
+                "url": "https://github.com/acheddir/git-contrib/releases/download/v$version/git-contrib-windows-amd64.zip",
                 "extract_dir": "git-contrib-$version"
             }
         }
