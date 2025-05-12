@@ -5,6 +5,13 @@
     "license": "MIT",
     "bin": "git-contrib.exe",
     "checkver": "github",
+    "hash": "32f99ef959a4d153b045042515de8619b58841add4e2b8db88311703b92f8f62",
+    "architecture": {
+        "64bit": {
+            "url": "https://github.com/acheddir/git-contrib/releases/download/v$version/git-contrib-windows-amd64.zip",
+            "extract_dir": "git-contrib-$version"
+        }
+    },
     "autoupdate": {
         "architecture": {
             "64bit": {
