@@ -1,6 +1,6 @@
 # git-contrib
 
-A tool for analyzing Git commits and displaying a contribution graph.
+A tool for analyzing Git commits and displaying a contribution graph on the command line.
 
 ## Features
 
