@@ -55,14 +55,3 @@ func ScanGitFolders(folders []string, folder string) []string {
 
 	return folders
 }
-
-// ScanFolder initializes an empty slice and calls ScanGitFolders to scan the specified folder.
-//
-// Parameters:
-//   - folder: The path to the folder to scan for Git repositories
-//
-// Returns:
-//   - A list of Git repository folders found
-func ScanFolder(folder string) []string {
-	return ScanGitFolders(make([]string, 0), folder)
-}

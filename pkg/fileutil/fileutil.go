@@ -5,26 +5,9 @@ import (
 	"io"
 	"log"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strings"
 )
-
-// GetDotfilePath returns the path to the .git-contrib dotfile in the user's home directory.
-// This file is used to store information about Git repositories.
-//
-// Returns:
-//   - The full path to the .git-contrib dotfile
-func GetDotfilePath() string {
-	usr, err := user.Current()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Return the path to the dotfile directly in the user's home directory
-	dotFile := filepath.Join(usr.HomeDir, ".git-contrib")
-	return dotFile
-}
 
 // ParseFileLines reads a file and returns its contents as a slice of strings, one per line.
 // If the file doesn't exist, it returns an empty slice.
@@ -85,42 +68,6 @@ func ParseFileLines(filePath string) []string {
 	return lines
 }
 
-// OpenFile opens a file for appending and writing, creating it if it doesn't exist.
-//
-// Parameters:
-//   - filePath: The path to the file to open
-//
-// Returns:
-//   - A file handle for the opened file
-func OpenFile(filePath string) *os.File {
-	// First, ensure the parent directory exists
-	dir := filepath.Dir(filePath)
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		// Create the directory with appropriate permissions
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			log.Printf("Failed to create directory %s: %v", dir, err)
-			panic(err)
-		}
-	}
-
-	file, err := os.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, 0666)
-	if err != nil {
-		if os.IsNotExist(err) {
-			file, err = os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY, 0666)
-			if err != nil {
-				log.Printf("Failed to create file %s: %v", filePath, err)
-				panic(err)
-			}
-			return file
-		} else {
-			log.Printf("Failed to open file %s: %v", filePath, err)
-			panic(err)
-		}
-	}
-
-	return file
-}
-
 // DumpStringsToFile writes a slice of strings to a file, one per line.
 //
 // Parameters:
@@ -142,26 +89,6 @@ func DumpStringsToFile(repos []string, path string) {
 		log.Printf("Failed to write to file %s: %v", path, err)
 		return
 	}
-}
-
-// AddElementsToFile adds new elements to a file, avoiding duplicates.
-//
-// Parameters:
-//   - filePath: The path to the file to add elements to
-//   - newRepos: The new elements to add
-func AddElementsToFile(filePath string, newRepos []string) {
-	// Ensure the directory exists
-	dir := filepath.Dir(filePath)
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			log.Printf("Failed to create directory %s: %v", dir, err)
-			return
-		}
-	}
-
-	existingRepos := ParseFileLines(filePath)
-	repos := JoinSlices(newRepos, existingRepos)
-	DumpStringsToFile(repos, filePath)
 }
 
 // JoinSlices combines two slices, avoiding duplicates.

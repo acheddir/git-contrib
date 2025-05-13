@@ -227,7 +227,7 @@ func TestPrintCell(t *testing.T) {
 
 	for _, tc := range testCases {
 		// This test just ensures the function doesn't panic
-		PrintCell(tc.val, tc.today, testDate)
+		PrintCell(tc.val, tc.today, testDate, false, false)
 	}
 }
 
@@ -241,7 +241,7 @@ func TestPrintCommitsStats(t *testing.T) {
 	}
 
 	// This test just ensures the function doesn't panic
-	PrintCommitsStats(commits)
+	PrintCommitsStats(commits, false, false)
 }
 
 // TestPrintCells tests that PrintCells doesn't panic
@@ -253,7 +253,7 @@ func TestPrintCells(t *testing.T) {
 	}
 
 	// This test just ensures the function doesn't panic
-	PrintCells(cols)
+	PrintCells(cols, false, false)
 }
 
 // TestPrintMonths tests that PrintMonths doesn't panic

@@ -63,10 +63,10 @@ func init() {
 	// Add the email flag to the stats command (no default value)
 	statsCmd.Flags().StringVarP(&email, "email", "e", "", "The email address to filter commits by (if empty, shows all users)")
 
-	// Add the self flag to use the current user's email from git config
+	// Add the self-flag to use the current user's email from git config
 	statsCmd.Flags().BoolVarP(&selfFlag, "self", "s", false, "Use the current user's email from git config")
 
-	// Add flags to show commit count on cells and days of month
+	// Add flags to show the commit count on cells and days of the month
 	statsCmd.Flags().BoolVarP(&showCommitCountFlag, "count", "c", false, "Display the number of commits on each cell")
 	statsCmd.Flags().BoolVarP(&showDaysOfMonthFlag, "days", "d", false, "Display the days of the month on the graph calendar")
 
