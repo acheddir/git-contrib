@@ -29,6 +29,7 @@ type Column []int
 // Returns:
 //   - time.Time: A new time.Time representing the beginning of the day
 func GetBeginningOfDay(t time.Time) time.Time {
+	t = t.UTC()
 	year, month, day := t.Date()
 	return time.Date(year, month, day, 0, 0, 0, 0, t.Location())
 }

@@ -27,7 +27,7 @@ func TestGetBeginningOfDay(t *testing.T) {
 	// Test case 3: Different time zone
 	loc, _ := time.LoadLocation("America/New_York")
 	input = time.Date(2023, 5, 15, 14, 30, 45, 123456789, loc)
-	expected = time.Date(2023, 5, 15, 0, 0, 0, 0, loc)
+	expected = time.Date(2023, 5, 15, 0, 0, 0, 0, time.UTC)
 	result = GetBeginningOfDay(input)
 	if !result.Equal(expected) {
 		t.Errorf("Expected %v, got %v", expected, result)

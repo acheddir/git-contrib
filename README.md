@@ -46,13 +46,30 @@ git-contrib stats --days
 
 ## Building from Source
 
+### Linux/macOS
+
 ```bash
 # Clone the repository
 git clone https://github.com/acheddir/git-contrib.git
 cd git-contrib
 
 # Build
-make clean && make
+make
+```
+
+### Windows
+
+```cmd
+# Clone the repository
+git clone https://github.com/acheddir/git-contrib.git
+cd git-contrib
+
+# Build using the provided batch file
+build.bat
+
+# Alternatively, you can build using Go directly
+go mod tidy
+go build -ldflags "-X github.com/acheddir/git-contrib/cmd.Version=0.1.0 -X github.com/acheddir/git-contrib/cmd.BuildDate=2023-05-13 -X github.com/acheddir/git-contrib/cmd.CommitHash=unknown"
 ```
 
 ## License

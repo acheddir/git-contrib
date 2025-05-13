@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -29,8 +30,8 @@ If an email is provided, it will show contributions from that email address only
 			return
 		}
 
-		// Use the current working directory
-		currentDir, err := os.Getwd()
+		// Use the specified working directory, otherwise use the current directory
+		currentDir, err := filepath.Abs(workingDir)
 		if err != nil {
 			fmt.Println("Error getting current directory:", err)
 			return
@@ -61,7 +62,8 @@ If an email is provided, it will show contributions from that email address only
 func init() {
 	rootCmd.AddCommand(statsCmd)
 
-	statsCmd.Flags().StringVarP(&workingDir, "--workingDir", "d", ".", "The directory to analyze (default is the current working directory)")
+	// Add the working directory flag to the stats command
+	statsCmd.Flags().StringVarP(&workingDir, "path", "p", ".", "The directory to analyze (default is the current working directory)")
 
 	// Add the email flag to the stats command (no default value)
 	statsCmd.Flags().StringVarP(&email, "email", "e", "", "The email address to filter commits by (if empty, shows all users)")
