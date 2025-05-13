@@ -9,6 +9,7 @@ import (
 	"strings"
 )
 
+var workingDir string
 var email string
 var selfFlag bool
 var showCommitCountFlag bool
@@ -59,6 +60,8 @@ If an email is provided, it will show contributions from that email address only
 
 func init() {
 	rootCmd.AddCommand(statsCmd)
+
+	statsCmd.Flags().StringVarP(&workingDir, "--workingDir", "d", ".", "The directory to analyze (default is the current working directory)")
 
 	// Add the email flag to the stats command (no default value)
 	statsCmd.Flags().StringVarP(&email, "email", "e", "", "The email address to filter commits by (if empty, shows all users)")
